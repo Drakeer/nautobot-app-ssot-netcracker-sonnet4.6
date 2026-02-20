@@ -1,6 +1,7 @@
 # nautobot-app-ssot-netcracker
 
 A Nautobot SSoT application that synchronises data from **NetCracker** (via direct PostgreSQL access) into **Nautobot**, treating NetCracker as the Single Source of Truth.
+THIS IS NOT INTENDED FOR USE.  THIS IS A CLAUDE CODE USE CASE AND EVALUATION OF MODELS AND DIFFERENT CONTEXT ENGINEERING
 
 Built on the [`nautobot-app-ssot`](https://github.com/nautobot/nautobot-app-ssot) framework using [DiffSync](https://github.com/networktocode/diffsync).
 
