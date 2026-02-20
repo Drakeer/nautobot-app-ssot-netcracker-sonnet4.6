@@ -1,0 +1,109 @@
+---
+# Development environment for nautobot-app-ssot-netcracker
+#
+# Starts:
+#   - Nautobot (web + worker)
+#   - Nautobot PostgreSQL
+#   - Redis (Celery broker)
+#   - A stub "NetCracker" PostgreSQL instance for integration testing
+#
+# Usage:
+#   cp development/creds.env.example development/creds.env
+#   # Edit creds.env with real or test values
+#   docker compose -f development/docker-compose.yml up -d
+#
+# Then visit http://localhost:8080 and log in with the superuser credentials
+# defined in creds.env.
+
+version: "3.9"
+
+services:
+
+  # -----------------------------------------------------------------------
+  # Nautobot application
+  # -----------------------------------------------------------------------
+  nautobot:
+    image: "networktocode/nautobot:stable"
+    env_file:
+      - creds.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      nautobot-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - "../:/source"
+    command: >
+      sh -c "pip install -e /source && nautobot-server migrate && nautobot-server runserver 0.0.0.0:8080"
+
+  # -----------------------------------------------------------------------
+  # Celery worker (for background jobs)
+  # -----------------------------------------------------------------------
+  nautobot-worker:
+    image: "networktocode/nautobot:stable"
+    env_file:
+      - creds.env
+    depends_on:
+      - nautobot
+    volumes:
+      - "../:/source"
+    command: >
+      sh -c "pip install -e /source && nautobot-server celery worker --loglevel=INFO"
+
+  # -----------------------------------------------------------------------
+  # Nautobot PostgreSQL database
+  # -----------------------------------------------------------------------
+  nautobot-db:
+    image: "postgres:15-alpine"
+    env_file:
+      - creds.env
+    environment:
+      POSTGRES_DB: "${NAUTOBOT_DB_NAME:-nautobot}"
+      POSTGRES_USER: "${NAUTOBOT_DB_USER:-nautobot}"
+      POSTGRES_PASSWORD: "${NAUTOBOT_DB_PASSWORD:-nautobot}"
+    volumes:
+      - nautobot-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -----------------------------------------------------------------------
+  # Redis (Celery broker + Nautobot caching)
+  # -----------------------------------------------------------------------
+  redis:
+    image: "redis:7-alpine"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -----------------------------------------------------------------------
+  # Stub NetCracker PostgreSQL instance
+  # Replace with a real NetCracker DB connection in production.
+  # -----------------------------------------------------------------------
+  netcracker-db:
+    image: "postgres:15-alpine"
+    environment:
+      POSTGRES_DB: "${NC_DB_NAME:-netcracker}"
+      POSTGRES_USER: "${NC_DB_USER:-nc_readonly}"
+      POSTGRES_PASSWORD: "${NC_DB_PASSWORD:-changeme}"
+      POSTGRES_HOST_AUTH_METHOD: "md5"
+    ports:
+      - "5433:5432"
+    volumes:
+      - netcracker-db-data:/var/lib/postgresql/data
+      - "./netcracker-seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  nautobot-db-data:
+  netcracker-db-data:

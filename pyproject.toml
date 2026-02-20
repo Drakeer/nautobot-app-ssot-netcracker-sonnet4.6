@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "nautobot-app-ssot-netcracker"
+version = "0.1.0"
+description = "Nautobot SSoT integration for NetCracker — syncs Devices, Sites, IPs, and Circuits from NetCracker PostgreSQL into Nautobot."
+authors = ["Network Automation Team"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/your-org/nautobot-app-ssot-netcracker"
+repository = "https://github.com/your-org/nautobot-app-ssot-netcracker"
+keywords = ["nautobot", "ssot", "netcracker", "network automation"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+packages = [{ include = "nautobot_ssot_netcracker" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.14"
+nautobot = ">=2.0.0,<3.0.0"
+nautobot-app-ssot = ">=2.0.0"
+psycopg2-binary = "^2.9"
+SQLAlchemy = "^2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4"
+pytest-django = "^4.7"
+factory-boy = "^3.3"
+coverage = "^7.3"
+invoke = "^2.2"
+black = "^24.0"
+ruff = "^0.3"
+
+[tool.poetry.plugins."nautobot.apps"]
+nautobot_ssot_netcracker = "nautobot_ssot_netcracker:config"
+
+[tool.poetry.plugins."nautobot_ssot.data_sources"]
+netcracker = "nautobot_ssot_netcracker.jobs:NetCrackerDataSource"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "nautobot.core.settings"
+python_files = "tests/test_*.py"
